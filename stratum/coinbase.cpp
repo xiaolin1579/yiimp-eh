@@ -526,7 +526,8 @@ void coinbase_create(YAAMP_COIND *coind, YAAMP_JOB_TEMPLATE *templ, json_value *
             if (templ->has_pow2_witness_data)
             {
                   strcat(templ->coinb2, "03");
-                  available -= templ->pow2_subsidy;
+                  //Below line is (probably) not necessary - uncomment this if your pool is earning the wrong subsidy in phase 3.
+                  //available -= templ->pow2_subsidy;
             }
             else
             {
