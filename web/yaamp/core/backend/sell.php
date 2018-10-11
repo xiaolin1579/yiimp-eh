@@ -6,12 +6,18 @@ function TradingSellCoins()
 {
 //	debuglog(__FUNCTION__);
 
-	$coins = getdbolist('db_coins', "enable and balance>0 and symbol!='BTC'");
-	foreach($coins as $coin) sellCoinToExchange($coin);
+	$coins = getdbolist('db_coins', "enable=1 and balance>0 and symbol!='BTC'");
+	
+//	debuglog("coins");
+
+	foreach($coins as $coin) sellCoinToExchange($coin);	
 }
 
 function sellCoinToExchange($coin)
 {
+//	debuglog(__FUNCTION__);
+//	debuglog("coin $coin->symbol dontsell=$coin->dontsell");
+
 	if($coin->dontsell) return;
 
 	$remote = new WalletRPC($coin);
@@ -19,7 +25,9 @@ function sellCoinToExchange($coin)
 	$info = $remote->getinfo();
 	if(!$info || !$info['balance']) return false;
 
-	if(!empty($coin->symbol2))
+//	debuglog("coin $coin->symbol :: balance=$info['balance']");
+
+	if(!empty($coin->symbol2)) 
 	{
 		$coin2 = getdbosql('db_coins', "symbol='$coin->symbol2'");
 		if(!$coin2) return;
@@ -27,10 +35,10 @@ function sellCoinToExchange($coin)
 		$amount = $info['balance'] - $info['paytxfee'];
 		$amount *= 0.9;
 
-//		debuglog("sending $amount $coin->symbol to main wallet");
+		debuglog("sending $amount $coin->symbol to main wallet");
 
 		$tx = $remote->sendtoaddress($coin2->master_wallet, $amount);
-//		if(!$tx) debuglog($remote->error);
+		if(!$tx) debuglog($remote->error);
 
 		return;
 	}
@@ -40,7 +48,7 @@ function sellCoinToExchange($coin)
 
 	if($market->lastsent != null && $market->lastsent > $market->lasttraded)
 	{
-//		debuglog("*** not sending $coin->name to $market->name. last tx is late ***");
+		debuglog("*** not sending $coin->name to $market->name. last tx is late ***");
 		return;
 	}
 
@@ -55,11 +63,11 @@ function sellCoinToExchange($coin)
 	$reserved = ($reserved1 + $reserved2) * 10;
 	$amount = $info['balance'] - $info['paytxfee'] - $reserved;
 
-//	if($reserved>0)
-//	{
-//		debuglog("$reserved1 $reserved2 out of {$info['balance']}");
-//		debuglog("reserving $reserved $coin->symbol out of $coin->balance, available $amount");
-//	}
+	if($reserved>0)
+	{
+		debuglog("$reserved1 $reserved2 out of {$info['balance']}");
+		debuglog("reserving $reserved $coin->symbol out of $coin->balance, available $amount");
+	}
 
 	if($amount < $coin->reward/4)
 	{
@@ -123,5 +131,3 @@ function sellCoinToExchange($coin)
 
 	return;
 }
-
-
