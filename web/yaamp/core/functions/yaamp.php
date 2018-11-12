@@ -91,6 +91,8 @@ function yaamp_algo_mBTC_factor($algo)
 	case 'keccakc':
 	case 'lbry':
 	case 'vanilla':
+	case 'scrypt' :
+	case 'lyra2v2' :
 		return 1000;
 	default:
 		return 1;
