@@ -16,6 +16,8 @@ function doCryptopiaCancelOrder($OrderID=false)
 
 function doCryptopiaTrading($quick=false)
 {
+	//debuglog("cryptopia: start trade");
+
 	$exchange = 'cryptopia';
 	$updatebalances = true;
 
@@ -68,17 +70,21 @@ function doCryptopiaTrading($quick=false)
 
 	if (!YAAMP_ALLOW_EXCHANGE) return;
 
+	//debuglog("YAAMP_ALLOW_EXCHANGE");
+
 	$flushall = rand(0, 8) == 0;
 	if($quick) $flushall = false;
 
 	$min_btc_trade = exchange_get($exchange, 'min_btc_trade', 0.00050000); // minimum allowed by the exchange
-	$sell_ask_pct = 1.05;        // sell on ask price + 5%
+	$sell_ask_pct = 1.00;        // sell on ask price + 5%
 	$cancel_ask_pct = 1.20;      // cancel order if our price is more than ask price + 20%
 
 	// auto trade
 	foreach ($balances->Data as $balance)
 	{
-		if ($balance->Total == 0) continue;
+		//debuglog("Autotrade");
+		//debuglog("Autotrade with $balance->Symbol");
+		//if ($balance->Total == 0) continue;
 		if ($balance->Symbol == 'BTC') continue;
 
 		$coin = getdbosql('db_coins', "symbol=:symbol AND dontsell=0", array(':symbol'=>$balance->Symbol));
@@ -88,8 +94,7 @@ function doCryptopiaTrading($quick=false)
 
 		$market = getdbosql('db_markets', "coinid=:coinid AND name='cryptopia'", array(':coinid'=>$coin->id));
 		if(!$market) continue;
-		$market->balance = $balance->Available;
-		$market->ontrade = $balance->HeldForTrades;
+		$market->balance = $balance->HeldForTrades;
 		$market->message = $balance->StatusMessage;
 
 		$orders = NULL;
@@ -155,6 +160,8 @@ function doCryptopiaTrading($quick=false)
 
 		// drop obsolete orders
 		$list = getdbolist('db_orders', "coinid={$coin->id} AND market='cryptopia'");
+		//$list_text = var_export($list,true);
+		//debuglog($list_text);
 		foreach($list as $db_order)
 		{
 			$found = false;
@@ -182,11 +189,17 @@ function doCryptopiaTrading($quick=false)
 		$amount = floatval($balance->Available);
 		if(!$amount) continue;
 
+		debuglog("Autotrade with $balance->Symbol / $amount");
+
 		if($amount*$coin->price < $min_btc_trade || !$market->marketid) continue;
+
+		//debuglog("min-btc-trade is passed");
 
 		sleep(1);
 		$data = cryptopia_api_query('GetMarketOrders', $market->marketid."/5");
 		if(!$data || !$data->Success || !$data->Data) continue;
+
+		//debuglog("is checked for orders");
 
 		if($coin->sellonbid)
 		for($i = 0; $i < 5 && $amount >= 0; $i++)
@@ -214,6 +227,8 @@ function doCryptopiaTrading($quick=false)
 		}
 
 		if($amount <= 0) continue;
+
+		//debuglog("sell-on-bid passed");
 
 		sleep(1);
 		$ticker = cryptopia_api_query('GetMarket', $market->marketid);
