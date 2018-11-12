@@ -56,6 +56,8 @@ echo <<<end
 <th data-sorter="numeric" align="right">Blocks</th>
 <th data-sorter="numeric" align="right">Diff/Paid</th>
 <th data-sorter="currency" align="right">Balance</th>
+<th data-sorter="currency" align="right">Pending</th>
+<th data-sorter="currency" align="right">Unpaid</th>
 <th data-sorter="currency" align="right">Total Paid</th>
 <th data-sorter="false" align="right" class="actions" width="150">Actions</th>
 </tr>
@@ -65,6 +67,8 @@ end;
 $total_balance = 0;
 $total_paid = 0;
 $total_unsold = 0;
+$total_pending = 0;
+$total_unpaid = 0;
 
 foreach($users as $user)
 {
@@ -78,6 +82,12 @@ foreach($users as $user)
 
 	$balance = bitcoinvaluetoa($user->balance);
 	$paid = dboscalar("SELECT sum(amount) FROM payouts WHERE account_id=".$user->id);
+    $pending = dboscalar("SELECT SUM(balanceuser.pending) FROM accounts 
+INNER JOIN balanceuser ON accounts.id=balanceuser.userid
+INNER JOIN (SELECT DISTINCT time FROM balanceuser ORDER BY time DESC LIMIT 1) as times ON balanceuser.time=times.time
+WHERE balanceuser.userid=".$user->id." AND (balanceuser.balance>.001 OR accounts.id IN (SELECT DISTINCT userid FROM workers)) 
+ORDER BY balanceuser.balance DESC");
+    $unpaid = $balance+$pending;
 	$d = datetoa2($user->last_earning);
 
 	$miner_count = getdbocount('db_workers', "userid=".$user->id);
@@ -117,6 +127,8 @@ foreach($users as $user)
 	echo '<td align="right">'.$block_count.'</td>';
 	echo '<td align="right">'.($user_rate ? $block_diff : '').'</td>';
 	echo '<td align="right">'.$balance.'</td>';
+    echo '<td align="right">'.$pending.'</td>';
+    echo '<td align="right">'.$unpaid.'</td>';
 	echo '<td align="right">'.$paid.'</td>';
 
 	echo '<td class="actions" align="right">';
@@ -139,6 +151,8 @@ foreach($users as $user)
 
 	$total_balance += $user->balance;
 	$total_paid += $paid;
+    $total_pending += $pending;
+    $total_unpaid += $unpaid;
 }
 
 echo "</tbody>";
@@ -154,6 +168,8 @@ echo '<tr class="ssfoot" style="border-top: 2px solid #eee;">';
 echo '<th colspan=3><b>Users Total ('.$user_count.')</b></a></th>';
 for ($c=0; $c<$colspan; $c++) echo '<th></th>';
 echo '<th align="right"><b>'.$total_balance.'</b></th>';
+echo '<th align="right"><b>'.$total_pending.'</b></th>';
+echo '<th align="right"><b>'.$total_unpaid.'</b></th>';
 echo '<th align="right"><b>'.$total_paid.'</b></th>';
 echo '<th></th>';
 echo '</tr>';
