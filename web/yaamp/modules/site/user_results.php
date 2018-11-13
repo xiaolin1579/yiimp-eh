@@ -85,8 +85,7 @@ foreach($users as $user)
     $pending = dboscalar("SELECT SUM(balanceuser.pending) FROM accounts 
 INNER JOIN balanceuser ON accounts.id=balanceuser.userid
 INNER JOIN (SELECT DISTINCT time FROM balanceuser ORDER BY time DESC LIMIT 1) as times ON balanceuser.time=times.time
-WHERE balanceuser.userid=".$user->id." AND (balanceuser.balance>.001 OR accounts.id IN (SELECT DISTINCT userid FROM workers)) 
-ORDER BY balanceuser.balance DESC");
+WHERE balanceuser.userid=".$user->id." AND (balanceuser.balance>.001 OR accounts.id IN (SELECT DISTINCT userid FROM workers))");
     $unpaid = $balance+$pending;
 	$d = datetoa2($user->last_earning);
 
