@@ -73,7 +73,7 @@ function doCrex24Trading($quick=false)
 		//$market->message = $balance->message;        
 
 		$orders = NULL;
-		if ($balance->reserved > 0) {
+		if ($balance->available > 0) {
 			sleep(1);
 			$params = array('instrument'=>$balance->currency."-BTC");
 			$orders = crex24_api_user('trading/activeOrders', $params);
