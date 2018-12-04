@@ -77,14 +77,14 @@ function doCrex24Trading($quick=false)
 			sleep(1);
 			$params = array('instrument'=>$balance->currency."-BTC");
 			$orders = crex24_api_user('trading/activeOrders', $params);
-
-			sleep(1);
-			$tickers = crex24_api_query('tickers', "instrument={$balance->currency}-BTC");
-			if(!$tickers) continue;
-            
-            		if(!is_array($tickers) || empty($tickers)) continue;
-			$ticker = $tickers[0];
 		}
+
+		sleep(1);
+		$tickers = crex24_api_query('tickers', "instrument={$balance->currency}-BTC");
+		if(!$tickers) continue;
+            
+            	if(!is_array($tickers) || empty($tickers)) continue;
+		$ticker = $tickers[0];		
 
 		if(is_array($orders) && !empty($orders))
 		{
@@ -165,14 +165,7 @@ function doCrex24Trading($quick=false)
 
 		if($amount*$coin->price < $min_btc_trade) continue;
 
-		//debuglog("min-btc-trade is passed");
-        
-		sleep(1);
-        	$tickers = crex24_api_query('tickers', "instrument={$balance->currency}-BTC");
-        	if(!$tickers) continue;
-            
-        	if(!is_array($tickers) || empty($tickers)) continue;
-        	$ticker = $tickers[0];        
+		//debuglog("min-btc-trade is passed");       
 
 		sleep(1);
 		$data = crex24_api_query('orderBook', "instrument={$ticker->instrument}&limit=5");
