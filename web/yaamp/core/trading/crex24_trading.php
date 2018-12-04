@@ -69,7 +69,7 @@ function doCrex24Trading($quick=false)
 
 		$market = getdbosql('db_markets', "coinid=:coinid AND name='crex24'", array(':coinid'=>$coin->id));
 		if(!$market) continue;
-		$market->balance = $balance->reserved;
+		$market->balance = $balance->available;
 		//$market->message = $balance->message;        
 
 		$orders = NULL;
