@@ -225,7 +225,7 @@ function doCrex24Trading($quick=false)
 		$db_order->amount = $amount;
 		$db_order->price = $sellprice;
 		$db_order->ask = $ticker->ask;
-		$db_order->bid = $ticker-bid;
+		$db_order->bid = $ticker->bid;
 		$db_order->uuid = $res->id;
 		$db_order->created = time();
 		$db_order->save();                
