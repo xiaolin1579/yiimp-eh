@@ -144,7 +144,7 @@ function BackendCoinPayments($coin)
 		$stats = getdbosql('db_stats', "1 order by time desc");
 
 		$renter = dboscalar("select sum(balance) from renters");
-		$pie = $balance - $total_to_pay - $renter - 1;
+		$pie = $balance - $total_to_pay - $renter - 0.1;
 
 		debuglog("pie to split is $pie");
 		if($pie>0)
