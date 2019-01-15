@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/tpruvot/yiimp.svg?branch=next)](https://travis-ci.org/tpruvot/yiimp)
+[![Build Status](https://travis-ci.org/tpruvot/yiimp.svg?branch=next)](https://travis-ci.org/llemilio/yiimp)
 
 #yiimp - yaamp fork
 
@@ -90,7 +90,7 @@ Look at rc.local, it starts all three backend shells and all stratum processes. 
 
 All your coin's config files need to blocknotify their corresponding stratum using something like:
 
-	blocknotify=blocknotify yaamp.com:port coinid %s
+	blocknotify=/PATH/TO/blocknotify yaamp.com:port coinid %s
 
 On the website, go to http://server.com/site/adminRights to login as admin. You have to change it to something different in the code (web/yaamp/modules/site/SiteController.php). A real admin login may be added later, but you can setup a password authentification with your web server, sample for lighttpd:
 
@@ -131,7 +131,10 @@ Thanks to globalzon to have released the initial Yaamp source code.
 
 --
 
-You can support this project donating to tpruvot :
+You can support this project donating to llemilio :
+BTC: bc1qn6ajpktkzx8r8cvq2h9w5z5dj3dhvhhgt238rp
 
+or tpruvot
 BTC : 1Auhps1mHZQpoX4mCcVL8odU81VakZQ6dR
+
 
