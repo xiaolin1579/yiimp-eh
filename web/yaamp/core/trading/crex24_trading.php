@@ -49,12 +49,12 @@ function doCrex24Trading($quick=false)
     
 	if (!YAAMP_ALLOW_EXCHANGE) return;
     
-    $flushall = rand(0, 8) == 0;
+	$flushall = rand(0, 8) == 0;
 	if($quick) $flushall = false;
     
 	$min_btc_trade = exchange_get($exchange, 'min_btc_trade', 0.00050000); // minimum allowed by the exchange
-	$sell_ask_pct = 1.00;        // sell on ask price + 1%
-	$cancel_ask_pct = 2.50;      // cancel order if our price is more than ask price + 20%
+	$sell_ask_pct = 1.01;        // sell on ask price + 1%
+	$cancel_ask_pct = 1.20;      // cancel order if our price is more than ask price + 20%
 
 	// auto trade
 	foreach ($data as $balance)
@@ -89,7 +89,7 @@ function doCrex24Trading($quick=false)
         if(!is_array($tickers) || empty($tickers)) continue;
         $ticker = $tickers[0];
 
-		if(is_array($orders) && !empty($orders))
+	if(is_array($orders) && !empty($orders))
         {
             foreach($orders as $order)
             {
