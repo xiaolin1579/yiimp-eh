@@ -131,10 +131,12 @@ Thanks to globalzon to have released the initial Yaamp source code.
 
 --
 
-You can support this project donating to llemilio :
-BTC: bc1qn6ajpktkzx8r8cvq2h9w5z5dj3dhvhhgt238rp
+You can support this project donating to llemilio
+
+BTC : bc1qn6ajpktkzx8r8cvq2h9w5z5dj3dhvhhgt238rp
 
 or tpruvot
+
 BTC : 1Auhps1mHZQpoX4mCcVL8odU81VakZQ6dR
 
 
