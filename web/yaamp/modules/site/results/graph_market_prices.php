@@ -39,11 +39,6 @@ foreach ($markets as $m) {
 	$max = max($max, (double) $m['max']);
 }
 
-if ($min == 999999999) {
-	// empty
-	$min = 0;
-}
-
 // "yiimp" price
 
 $stats = getdbolist('db_market_history', "time>$t AND idcoin={$id} AND idmarket IS NULL ORDER BY time");
@@ -51,6 +46,12 @@ foreach($stats as $histo) {
 	$d = date('Y-m-d H:i', $histo->time);
 	$series[YAAMP_SITE_NAME][] = array($d, (double) bitcoinvaluetoa($histo->price));
 	$max = max($max, $histo->price);
+    $min = min($min, $histo->price);
+}
+
+if ($min == 999999999) {
+	// empty
+	$min = 0;
 }
 
 echo json_encode(array(
