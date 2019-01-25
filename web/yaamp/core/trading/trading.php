@@ -52,7 +52,9 @@ function cancelExchangeOrder($order=false)
 			case 'livecoin':
 				doLiveCoinCancelOrder($order->uuid);
 				break;
-
+			case 'poloniex':
+				doPoloniexCancelOrder($order->uuid);
+				break;				
 		}
 }
 
