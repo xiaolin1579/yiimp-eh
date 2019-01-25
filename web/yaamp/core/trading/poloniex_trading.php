@@ -2,19 +2,20 @@
 
 function doPoloniexCancelOrder($OrderID=false, $pair=false, $poloniex=false)
 {
-	if(!$OrderID) return;
-	if(!$pair) return;
+    debuglog("poloniex: cancel order {$OrderID}");
+    
+    if(!$OrderID) return;
 
-	if(!$poloniex) $poloniex = new CcexAPI;
+	if(!$poloniex) $poloniex = new poloniex;
 
-	$res = $poloniex->cancel_order($pair,$OrderID);
+	$res = $poloniex->cancel_order($OrderID);
 	if($res && $res['success'])
 		{
 		$db_order = getdbosql('db_orders', "market=:market AND uuid=:uuid", array(
 			':market'=>'poloniex', ':uuid'=>$OrderID
 		));
 		if($db_order) $db_order->delete();
-	}
+	} else debuglog('poloniex: cancelOrder misbehaving '.json_encode($res));
 }
 
 function doPoloniexTrading()
