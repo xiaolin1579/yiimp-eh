@@ -165,11 +165,10 @@ class poloniex
 			);
 		}
 
-		public function cancel_order($pair, $order_number) {
+		public function cancel_order($order_number) {
 			return $this->query(
 				array(
-					'command' => 'cancelOrder',
-					'currencyPair' => strtoupper($pair),
+					'command' => 'cancelOrder',					
 					'orderNumber' => $order_number
 				)
 			);
