@@ -85,7 +85,10 @@ void ser_string_be(const char *input, char *output, int len);
 void ser_string_be2(const char *input, char *output, int len);
 
 void string_be(const char *input, char *output);
+void string_be_len(const char *input, char *output, int len);
 void string_be1(char *s);
+
+void string_reverse(const char *input, char *output);
 
 bool ishexa(char *hex, int len);
 
@@ -100,7 +103,16 @@ uint64_t decode_compact(const char *input);
 uint64_t diff_to_target(double difficulty);
 double target_to_diff(uint64_t target);
 
+uint64_t diff_to_target_equi(double difficulty);
+double target_to_diff_equi(uint64_t target);
+
+bool hex2bin(void *output, const char *hexstr, size_t len);
+    
+double target_string_to_diff(const char *target_hex);
+double nbits_to_diff(const char * nbits);
+
 uint64_t get_hash_difficulty(unsigned char *input);
+uint64_t get_hash_difficulty_equi(unsigned char *input);
 
 long long current_timestamp();
 long long current_timestamp_dms();
@@ -133,7 +145,21 @@ static inline uint16_t le16dec(const void *pp)
 }
 #endif
 
+static inline uint32_t le32dec(const void *pp)
+{
+	const uint8_t *p = (uint8_t const *)pp;
+	return ((uint32_t)(p[0]) + ((uint32_t)(p[1]) << 8) +
+	    ((uint32_t)(p[2]) << 16) + ((uint32_t)(p[3]) << 24));
+}
+
 static inline uint32_t bswap32(uint32_t x) {
 	__asm__ __volatile__ ("bswapl %0" : "=r" (x) : "0" (x));
 	return x;
 }
+
+//////////////////////////////////////////////////////////////////////////
+
+#define bswap_32(x) ((((x) << 24) & 0xff000000u) | (((x) << 8) & 0x00ff0000u) \
+                   | (((x) >> 8) & 0x0000ff00u) | (((x) >> 24) & 0x000000ffu))
+#define bswap_64(x) (((uint64_t) bswap_32((uint32_t)((x) & 0xffffffffu)) << 32) \
+                   | (uint64_t) bswap_32((uint32_t)((x) >> 32)))

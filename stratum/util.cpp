@@ -415,6 +415,7 @@ void hexlify(char *hex, const unsigned char *bin, int len)
 	hex[0] = 0;
 	for(int i=0; i < len; i++)
 		sprintf(hex+strlen(hex), "%02x", bin[i]);
+    //hex[len] = 0;
 }
 
 bool ishexa(char *hex, int len)
@@ -500,6 +501,30 @@ void string_be(const char *input, char *output)
 		memcpy(output + (len-i-1)*2, input + i*2, 2);
 }
 
+void string_be_len(const char *input, char *output, int len)
+{
+	//int len = strlen(input)/2;
+
+    //debuglog("string_be_len IN  INPUT[%d] %s,  OUTPUT[%d] %s\n", strlen(input), input, strlen(output), output);
+	for(int i=0; i<len; i++) {
+        strncpy(output + (len-i-1)*2, input + i*2, 2);
+        //output[len*2-(i*2-2)]=input[i*2];
+        //output[len*2-(i*2-1)]=input[i*2+1];        
+    }
+    char empty[1] = {0};
+    strncpy(output+len*2, empty, 1);
+		
+    //debuglog("string_be_len OUT INPUT[%d] %s,  OUTPUT[%d] %s\n", strlen(input), input, strlen(output), output);
+}
+
+void string_reverse(const char *input, char *output, int len)
+{
+	//int len = strlen(input);
+
+	for(int i=0; i<len; i++)
+		memcpy(output + (len-i-1), input + i, 1);
+}
+
 void string_be1(char *s)
 {
 	char s2[1024];
@@ -525,6 +550,104 @@ double target_to_diff(uint64_t target)
 
 	double d = (double)0x0000ffff00000000/target;
 	return d;
+}
+
+uint64_t diff_to_target_equi(double difficulty)
+{
+	if(!difficulty) return 0;
+
+	uint64_t t = (double)0x0007ffff00000000/difficulty;
+    //debuglog("diff_to_target_equi(%.1f) uint64_t=%016llx\n", difficulty, t);
+	return t;
+}
+
+double target_to_diff_equi(uint64_t target)
+{
+	if(!target) return 0;
+
+	double d = (double)0x0007ffff00000000/target;
+	return d;
+}
+
+double nbits_to_diff(const char * nbits) 
+{
+    uint32_t bits;    
+    sscanf(nbits, "%x", &bits);    
+    
+    uint32_t powLimit = 0x1f07ffff;
+    int nShift = (bits >> 24) & 0xff;
+    int nShiftAmount = (powLimit >> 24) & 0xff;        
+
+    double dDiff =
+        (double)(powLimit & 0x00ffffff) / 
+        (double)(bits & 0x00ffffff);
+
+    while (nShift < nShiftAmount)
+    {
+        dDiff *= 256.0;
+        nShift++;
+    }
+    while (nShift > nShiftAmount)
+    {
+        dDiff /= 256.0;
+        nShift--;
+    }
+
+    return dDiff;    
+}
+
+double target_string_to_diff(const char *target_hex)
+{
+	uint8_t target_bin[32], target_be[32];
+    
+    debuglog("****** - target_string_to_diff explication - *******\n");
+    debuglog("target_hex=%s\n",target_hex);
+	hex2bin(target_bin, target_hex, 32);
+    
+    uint64_t h = htoi64(target_hex);
+    debuglog("htoi64(target_hex)=0x%x\n", h);
+    
+    debuglog("target_bin=0x%x\n",target_bin);
+	memset(target_be, 0xff, 32);
+	int filled = 0;
+	for (int i=0; i<32; i++) {
+		if (filled == 3) break;
+		target_be[31-i] = target_bin[i];
+		if (target_bin[i]) filled++;
+	}
+    debuglog("target_be=0x%x\n",target_be);
+    debuglog("****** --------------- end ----------------- *******\n");
+
+    uint64_t arg = (uint32_t)(*target_be);
+	return target_to_diff_equi(arg);
+}
+
+bool hex2bin(void *output, const char *hexstr, size_t len)
+{
+	unsigned char *p = (unsigned char *) output;
+	char hex_byte[4];
+	char *ep;
+
+	hex_byte[2] = '\0';
+
+	while (*hexstr && len) {
+		if (!hexstr[1]) {
+			debuglog("hex2bin str truncated");
+			return false;
+		}
+		hex_byte[0] = hexstr[0];
+		hex_byte[1] = hexstr[1];
+		*p = (unsigned char) strtol(hex_byte, &ep, 16);
+		if (*ep) {
+			debuglog("hex2bin failed on '%s'", hex_byte);
+			return false;
+		}
+		p++;
+		hexstr += 2;
+		len--;
+	}
+
+	return (len == 0 && *hexstr == 0) ? true : false;
 }
 
 uint64_t decode_compact(const char *input)
@@ -577,6 +700,26 @@ uint64_t get_hash_difficulty(unsigned char *input)
 		(uint64_t)p[24] << 16 |
 		(uint64_t)p[23] << 8 |
 		(uint64_t)p[22] << 0;
+
+//	char toto[1024];
+//	hexlify(toto, input, 32);
+//	debuglog("hash diff %s %016llx\n", toto, v);
+	return v;
+}
+
+uint64_t get_hash_difficulty_equi(unsigned char *input)
+{
+	unsigned char *p = (unsigned char *)input;
+
+	uint64_t v =
+		(uint64_t)p[31] << 56 |
+		(uint64_t)p[30] << 48 |
+		(uint64_t)p[29] << 40 |
+		(uint64_t)p[28] << 32 |
+		(uint64_t)p[27] << 24 |
+		(uint64_t)p[26] << 16 |
+		(uint64_t)p[25] << 8 |
+		(uint64_t)p[24] << 0;
 
 //	char toto[1024];
 //	hexlify(toto, input, 32);
@@ -722,7 +865,7 @@ void string_upper(char *s)
 
 int getblocheight(const char *coinb1)
 {
-	unsigned char coinb1_bin[1024];
+	unsigned char coinb1_bin[9192];
 	binlify(coinb1_bin, coinb1);
 
 	int height = 0;

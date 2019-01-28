@@ -149,7 +149,7 @@ json_value *socket_nextjson(YAAMP_SOCKET *s, YAAMP_CLIENT *client)
 	char saved = *p;
 	*p = 0;
 
-	if(client && client->logtraffic)
+	//if(client && client->logtraffic)
 		stratumlog("%s, %s, %s, %s, recv: %s\n", client->sock->ip, client->username, client->password, g_current_algo->name, s->buffer);
 
 	int bytes = strlen(b);

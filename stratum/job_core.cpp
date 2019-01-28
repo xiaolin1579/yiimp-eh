@@ -23,9 +23,11 @@ bool job_has_free_client()
 	g_list_client.Enter();
 	for(CLI li = g_list_client.first; li; li = li->next)
 	{
+        //debuglog("Has at least ONE client\n");
 		YAAMP_CLIENT *client = (YAAMP_CLIENT *)li->data;
 		if(client->deleted) continue;
 
+        //if (client->jobid_next) debuglog("Who has next job: %d\n", client->jobid_next);
 		if(!client->jobid_next)
 		{
 			g_list_client.Leave();

@@ -1,4 +1,5 @@
 
+#include <string.h>
 #include "stratum.h"
 
 vector<string> merkle_steps(vector<string> input)

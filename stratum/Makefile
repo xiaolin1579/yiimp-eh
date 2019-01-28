@@ -1,12 +1,12 @@
 
 CC=gcc
 
-CFLAGS= -g -march=native
+CFLAGS= -g -rdynamic -march=native
 SQLFLAGS= `mysql_config --cflags --libs`
 
 # Comment this line to disable address check on login,
 # if you use the auto exchange feature...
-CFLAGS += -DNO_EXCHANGE
+########################CFLAGS += -DNO_EXCHANGE
 
 #CFLAGS=-c -O2 -I /usr/include/mysql
 LDFLAGS=-O2 `mysql_config --libs`
@@ -24,7 +24,7 @@ SOURCES += rpc_curl.cpp
 LDCURL = $(shell /usr/bin/pkg-config --static --libs libcurl)
 LDFLAGS += $(LDCURL)
 
-OBJECTS=$(SOURCES:.cpp=.o)
+OBJECTS=$(SOURCES:.cpp=.o) 
 OUTPUT=stratum
 
 CODEDIR1=algos

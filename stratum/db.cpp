@@ -105,11 +105,16 @@ void db_register_stratum(YAAMP_DB *db)
 	int t = time(NULL);
 	if(!db) return;
 
+    /*debuglog("Stratum Db before db record:\n INSERT INTO stratums (pid, time, started, algo, url, port) VALUES (%d,%d,%d,'%s','%s',%d) "
+		" ON DUPLICATE KEY UPDATE time=%d, algo='%s', url='%s', port=%d\n",
+		pid, t, t, g_stratum_algo, g_tcp_server, g_tcp_port,
+		t, g_stratum_algo, g_tcp_server, g_tcp_port);*/
+    
 	db_query(db, "INSERT INTO stratums (pid, time, started, algo, url, port) VALUES (%d,%d,%d,'%s','%s',%d) "
 		" ON DUPLICATE KEY UPDATE time=%d, algo='%s', url='%s', port=%d",
 		pid, t, t, g_stratum_algo, g_tcp_server, g_tcp_port,
 		t, g_stratum_algo, g_tcp_server, g_tcp_port
-	);
+	);    
 }
 
 void db_update_algos(YAAMP_DB *db)
@@ -186,6 +191,7 @@ void db_update_coinds(YAAMP_DB *db)
 
 		debuglog("disabling %s\n", coind->symbol);
 		db_query(db, "update coins set auto_ready=%d where id=%d", coind->auto_ready, coind->id);
+        debuglog("update coins set auto_ready=%d where id=%d", coind->auto_ready, coind->id);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -202,8 +208,10 @@ void db_update_coinds(YAAMP_DB *db)
 	MYSQL_ROW row;
 	g_list_coind.Enter();
 
+    debuglog("-------------------------- ** NEW COINS FETCH ROUND ** ---------------------------------\n");
 	while((row = mysql_fetch_row(result)) != NULL)
 	{
+        //debuglog("A-01 Before coind\n");
 		YAAMP_COIND *coind = (YAAMP_COIND *)object_find(&g_list_coind, atoi(row[0]));
 		if(!coind)
 		{
@@ -218,6 +226,7 @@ void db_update_coinds(YAAMP_DB *db)
 		else
 			coind->newcoind = false;
 
+        //debuglog("A-02 Before name/symbol\n");
 		strcpy(coind->name, row[1]);
 		strcpy(coind->symbol, row[20]);
 		// optional coin filters
@@ -231,11 +240,14 @@ void db_update_coinds(YAAMP_DB *db)
 			}
 		}
 
+        //debuglog("A-03 Before wallet\n");
 		if(row[7]) strcpy(coind->wallet, row[7]);
+		//debuglog("%s has wallet %s\n", coind->symbol, coind->wallet);
 		if(row[6]) strcpy(coind->rpcencoding, row[6]);
 		if(row[6]) coind->pos = strcasecmp(row[6], "POS")? false: true;
 		if(row[10]) coind->hassubmitblock = atoi(row[10]);
 
+        //debuglog("A-04 Before ssl\n");
 		coind->rpc.ssl = 0;
 		// deprecated method to set ssl and cert (before db specific fields)
 		if(row[2]) {
@@ -259,6 +271,7 @@ void db_update_coinds(YAAMP_DB *db)
 			strcpy(coind->rpc.host, buffer);
 		}
 
+        //debuglog("A-05 Before rpc port\n");
 		if(row[3]) coind->rpc.port = atoi(row[3]);
 
 		if(row[4] && row[5])
@@ -270,7 +283,11 @@ void db_update_coinds(YAAMP_DB *db)
 			coind->rpc.coind = coind;
 		}
 
+        //debuglog("A-06 Before params\n");
 		if(row[8]) coind->reward = atof(row[8]);
+        if (g_debuglog_hash) {
+            debuglog("%s reward per block is %.5f\n", coind->symbol, coind->reward);
+        }
 		if(row[9]) coind->price = atof(row[9]);
 		if(row[11]) coind->txmessage = atoi(row[11]);
 		if(row[12]) coind->enable = atoi(row[12]);
@@ -279,7 +296,7 @@ void db_update_coinds(YAAMP_DB *db)
 
 		if(row[16]) strcpy(coind->charity_address, row[16]);
 		if(row[17]) coind->charity_amount = atof(row[17]);
-		if(row[18]) coind->charity_percent = atof(row[18]);
+		if(row[18]) coind->charity_percent = atof(row[18]);        
 		if(row[19]) coind->reward_mul = atof(row[19]);
 
 		if(row[21]) coind->isaux = atoi(row[21]);
@@ -311,6 +328,7 @@ void db_update_coinds(YAAMP_DB *db)
 		if(!strcmp(coind->symbol, "DCR") && strcmp(coind->rpcencoding, "DCR"))
 			strcpy(coind->rpcencoding, "DCR");
 
+        //debuglog("A-07 Before hasmasternodes\n");
 		// old dash masternodes coins..
 		if(coind->hasmasternodes) {
 			if (strcmp(coind->symbol, "ALQO") == 0) coind->oldmasternodes = true;
@@ -331,7 +349,7 @@ void db_update_coinds(YAAMP_DB *db)
 
 		////////////////////////////////////////////////////////////////////////////////////////////////////
 
-		//coind->touch = true;
+		//coind->touch = true;        
 		if(coind->newcoind)
 		{
 			debuglog("connecting to coind %s\n", coind->symbol);
@@ -342,12 +360,17 @@ void db_update_coinds(YAAMP_DB *db)
 				object_delete(coind);
 				continue;
 			}
+            //debuglog("0-01 Before init\n");
 			coind_init(coind);
 
+            //debuglog("0-02 Before addtail\n");
 			g_list_coind.AddTail(coind);
+            //debuglog("0-03 Before usleep\n");
 			usleep(100*YAAMP_MS);
 		}
+        //debuglog("0-04 Before touch\n");
 		coind->touch = true;
+        //debuglog("0-05 Before create job\n");
 		coind_create_job(coind);
 	}
 
@@ -368,7 +391,7 @@ void db_update_coinds(YAAMP_DB *db)
 	}
 
 	coind_sort();
-	g_list_coind.Leave();
+	g_list_coind.Leave();    
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////

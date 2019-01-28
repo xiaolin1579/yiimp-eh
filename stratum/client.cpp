@@ -118,8 +118,13 @@ bool client_subscribe(YAAMP_CLIENT *client, json_value *json_params)
 		debuglog("new client with nonce %s\n", client->extranonce1);
 	}
 
-	client_send_result(client, "[[[\"mining.set_difficulty\",\"%.3g\"],[\"mining.notify\",\"%s\"]],\"%s\",%d]",
-		client->difficulty_actual, client->notify_id, client->extranonce1, client->extranonce2size);
+	if (strcmp(g_stratum_algo,"equihash")==0) {
+        client_send_result(client, "[\"%s\",\"%s\"]",
+            client->notify_id, client->extranonce1);                
+    } else {
+        client_send_result(client, "[[[\"mining.set_difficulty\",\"%.3g\"],[\"mining.notify\",\"%s\"]],\"%s\",%d]",
+            client->difficulty_actual, client->notify_id, client->extranonce1, client->extranonce2size);
+    }
 
 	return true;
 }
@@ -167,6 +172,12 @@ bool client_validate_user_address(YAAMP_CLIENT *client)
 		return false;
 	}
 
+    for(CLI li = g_list_coind.first; li; li = li->next) {
+		YAAMP_COIND *coind = (YAAMP_COIND *)li->data;
+        debuglog("%s:%d \n", coind->symbol,coind->id);
+    }
+    
+    debuglog("Client coid->id %d\n", client->coinid);
 	YAAMP_COIND *coind = (YAAMP_COIND *)object_find(&g_list_coind, client->coinid);
 	if (!coind) {
 		clientlog(client, "unable to find the wallet for coinid %d...", client->coinid);
@@ -230,7 +241,7 @@ bool client_authorize(YAAMP_CLIENT *client, json_value *json_params)
 	}
 
 	if (!is_base58(client->username)) {
-		clientlog(client, "bad mining address %s", client->username);
+		clientlog(client, "IS NOT BASE 58: bad mining address %s", client->username);
 		return false;
 	}
 
@@ -264,7 +275,7 @@ bool client_authorize(YAAMP_CLIENT *client, json_value *json_params)
 	// when auto exchange is disabled, only authorize good wallet address...
 	if (!g_autoexchange && !client_validate_user_address(client)) {
 
-		clientlog(client, "bad mining address %s", client->username);
+		clientlog(client, "IS NOT VALID ADDRESS: bad mining address %s", client->username);
 		client_send_result(client, "false");
 
 		CommonLock(&g_db_mutex);
@@ -273,14 +284,16 @@ bool client_authorize(YAAMP_CLIENT *client, json_value *json_params)
 
 		return false;
 	}
-
+    
 	client_send_result(client, "true");
-	client_send_difficulty(client, client->difficulty_actual);
+	if (strcmp(g_stratum_algo,"equihash")!=0)
+        client_send_difficulty(client, client->difficulty_actual);
 
-	if(client->jobid_locked)
+	if(client->jobid_locked) {
 		job_send_jobid(client, client->jobid_locked);
-	else
+    } else {
 		job_send_last(client);
+    }            
 
 	g_list_client.AddTail(client);
 	return true;
@@ -586,7 +599,7 @@ void *client_thread(void *p)
 		}
 
 		if (g_debuglog_client) {
-			debuglog("client %s %d %s\n", method, client->id_int, client->id_str? client->id_str: "null");
+			//debuglog("client %s %d %s\n", method, client->id_int, client->id_str? client->id_str: "null");
 		}
 
 		bool b = false;

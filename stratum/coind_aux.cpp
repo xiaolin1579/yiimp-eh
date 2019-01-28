@@ -14,7 +14,7 @@ void coind_aux_build_auxs(YAAMP_JOB_TEMPLATE *templ)
 //		coind_getauxblock(coind);
 		len++;
 	}
-
+    
 	templ->auxs_size = 0;
 	memset(templ->auxs, 0, sizeof(templ->auxs));
 

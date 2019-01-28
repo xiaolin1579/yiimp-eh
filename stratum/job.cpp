@@ -23,6 +23,8 @@ static bool job_assign_client(YAAMP_JOB *job, YAAMP_CLIENT *client, double maxha
 		//	client->username[0], job->coind->symbol);
 		return true;
 	}
+    
+    strcpy(client->algo, job->algo);
 
 	if(job->remote)
 	{
@@ -108,7 +110,7 @@ static bool job_assign_client(YAAMP_JOB *job, YAAMP_CLIENT *client, double maxha
 //	debuglog(" assign %x, %f, %d, %s\n", job->id, client->speed, client->reconnecting, client->sock->ip);
 	if(strcmp(client->extranonce1, client->extranonce1_last) || client->extranonce2size != client->extranonce2size_last)
 	{
-//		debuglog("new nonce %x %s %s\n", job->id, client->extranonce1_last, client->extranonce1);
+		debuglog("new nonce %x %s %s\n", job->id, client->extranonce1_last, client->extranonce1);
 		if(!client->extranonce_subscribe)
 		{
 			strcpy(client->extranonce1_reconnect, client->extranonce1);
@@ -194,7 +196,9 @@ void job_assign_clients_left(double factor)
 	bool b;
 	for(CLI li = g_list_coind.first; li; li = li->next)
 	{
+        //debuglog("Job with factor %.2f...\n", factor);
 		if(!job_has_free_client()) return;
+        //debuglog("Has free client!\n");
 
 		YAAMP_COIND *coind = (YAAMP_COIND *)li->data;
 		if(!coind_can_mine(coind)) continue;
@@ -213,7 +217,7 @@ void job_assign_clients_left(double factor)
 					factor = 0.;
 			}
 
-			//debuglog("%s %s factor %f nethash %.3f\n", coind->symbol, client->username, factor, nethash);
+			debuglog("%s %s factor %f nethash %.3f\n", coind->symbol, client->username, factor, nethash);
 
 			if (factor > 0.) {
 				b = job_assign_client(coind->job, client, nethash*factor);
@@ -258,7 +262,7 @@ void job_signal()
 
 void job_update()
 {
-//	debuglog("job_update()\n");
+	//debuglog("job_update()\n");
 	job_reset_clients();
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -271,6 +275,7 @@ void job_update()
 		YAAMP_JOB *job = (YAAMP_JOB *)li->data;
 		if(!job_can_mine(job)) continue;
 
+        debuglog("Job maxspeed: %.5f\n",job->maxspeed);
 		job_assign_clients(job, job->maxspeed);
 		job_unlock_clients(job);
 
@@ -284,7 +289,17 @@ void job_update()
 
 	g_list_coind.Enter();
 	coind_sort();
+    
+    /*
+    int counter = 0;
+    for(CLI li = g_list_coind.first; li; li = li->next)
+	{
+		YAAMP_COIND *coind = (YAAMP_COIND *)li->data;
+        debuglog("%s : %f (diff:%f, reward:%f, price: %f)\n",coind->symbol, coind_profitability(coind), coind->difficulty, coind->reward, coind->price);
+        //if (++counter>1) break;
+    }*/
 
+    //debuglog("Job before ASSIGN CLIENTS\n");
 	job_assign_clients_left(1);
 	job_assign_clients_left(1);
 	job_assign_clients_left(-1);

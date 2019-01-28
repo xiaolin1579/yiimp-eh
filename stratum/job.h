@@ -10,9 +10,9 @@ struct YAAMP_JOB_VALUES
 	char coinbase[4*1024];
 	char merkleroot_be[1024];
 
-	char header[1024];
-	char header_be[1024];
-	unsigned char header_bin[1024];
+	char header[9192];
+	char header_be[9192];
+	unsigned char header_bin[9192];
 
 	char hash_hex[1024];
 	char hash_be[1024];
@@ -25,7 +25,7 @@ struct YAAMP_JOB_TEMPLATE
 	char flags[64];
 
 	char prevhash_hex[512];
-	char prevhash_be[512];
+	char prevhash_be[512];    
 
 	char extradata_hex[512];
 	char extradata_be[512];
@@ -40,17 +40,23 @@ struct YAAMP_JOB_TEMPLATE
 	vector<string> txsteps;
 	vector<string> txdata;
 
-	char version[32];
-	char nbits[32];
-	char ntime[32];
+	char version[8+1];
+	char nbits[8+1];
+	char ntime[8+1];
+    
+    char merkleroot[64+1];
+    char merkleroot_be[64+1];
 
 	int height;
 	int target;
+    char target_hex[512];
 
 	json_int_t value;
 
 	char coinb1[4*1024];
 	char coinb2[4*1024];
+    char coinbasetx[8*1024];    
+    char coinbasetx_hash[512];
 
 	char header[256];
 
@@ -60,14 +66,7 @@ struct YAAMP_JOB_TEMPLATE
 	int filtered_txs_fee;
 
 	int auxs_size;
-	YAAMP_COIND_AUX *auxs[MAX_AUXS];
-
-        // Start of Gulden specific data for phase 3 witnessing
-        bool has_pow2_witness_data;
-        int pow2_subsidy;
-        char pow2_aux_1[2048];
-        char pow2_aux_2[2048];
-        // End of Gulden spcific data for phase 3 witnessing
+	YAAMP_COIND_AUX *auxs[MAX_AUXS];    
 };
 
 #define YAAMP_JOB_MAXSUBIDS		200
@@ -89,6 +88,8 @@ public:
 	YAAMP_JOB_TEMPLATE *templ;
 
 	bool remote_subids[YAAMP_JOB_MAXSUBIDS];
+    
+    char algo[256];    
 };
 
 inline void job_delete(YAAMP_OBJECT *object)

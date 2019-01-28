@@ -1,3 +1,4 @@
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/time.h>
@@ -81,8 +82,6 @@ extern char g_stratum_coin_exclude[256];
 
 extern char g_stratum_algo[256];
 extern double g_stratum_difficulty;
-extern double g_stratum_min_diff;
-extern double g_stratum_max_diff;
 
 extern int g_stratum_max_cons;
 extern int g_stratum_max_ttf;
@@ -131,6 +130,12 @@ extern YAAMP_ALGO *g_current_algo;
 
 extern bool g_autoexchange;
 
+typedef uint64_t u64;
+typedef uint32_t u32;
+typedef uint16_t u16;
+typedef uint8_t u8;
+typedef unsigned char uchar;
+
 /////////////////////////////////////////////////////////////////////////////////////////
 
 YAAMP_ALGO *stratum_find_algo(const char *name);
@@ -158,7 +163,6 @@ void sha256_double_hash_hex(const char *input, char *output, unsigned int len);
 #include "algos/x16r.h"
 #include "algos/x16s.h"
 #include "algos/x17.h"
-#include "algos/x22i.h"
 #include "algos/xevan.h"
 #include "algos/hmq17.h"
 #include "algos/nist5.h"
@@ -172,7 +176,6 @@ void sha256_double_hash_hex(const char *input, char *output, unsigned int len);
 #include "algos/lyra2z.h"
 #include "algos/blake.h"
 #include "algos/blakecoin.h"
-#include "algos/blake2b.h"
 #include "algos/blake2s.h"
 #include "algos/qubit.h"
 #include "algos/groestl.h"
@@ -180,7 +183,6 @@ void sha256_double_hash_hex(const char *input, char *output, unsigned int len);
 #include "algos/skein.h"
 #include "algos/keccak.h"
 #include "algos/sha256t.h"
-#include "algos/sha256q.h"
 #include "algos/skunk.h"
 #include "algos/timetravel.h"
 #include "algos/bitcore.h"
@@ -188,11 +190,9 @@ void sha256_double_hash_hex(const char *input, char *output, unsigned int len);
 #include "algos/bastion.h"
 #include "algos/bmw.h"
 #include "algos/deep.h"
-#include "algos/lbk3.h"
 #include "algos/lbry.h"
 #include "algos/luffa.h"
 #include "algos/pentablake.h"
-#include "algos/rainforest.h"
 #include "algos/whirlpool.h"
 #include "algos/whirlpoolx.h"
 #include "algos/skein2.h"
@@ -212,5 +212,5 @@ void sha256_double_hash_hex(const char *input, char *output, unsigned int len);
 #include "algos/vitalium.h"
 #include "algos/aergo.h"
 #include "algos/hex.h"
-#include "algos/argon2d-dyn.h"
-#include "algos/exosis.h"
+
+#include "algos/equihash.h"

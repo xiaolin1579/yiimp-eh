@@ -6,6 +6,84 @@ uint64_t lyra2z_height = 0;
 //#define MERKLE_DEBUGLOG
 //#define DONTSUBMIT
 
+void build_submit_values_equi(YAAMP_JOB_VALUES *submitvalues, YAAMP_JOB_TEMPLATE *templ,
+	const char *nonce1, const char *nonce2, const char *ntime_be, const char *sols)
+{
+    char nbits_be[8+1] = { 0 };
+    char version_be[8+1] = { 0 };
+    char nonce[64+1] = { 0 };
+    
+    //debuglog("COINBASE TEMPLT: %s\n", templ->coinbasetx);
+    strcpy(submitvalues->coinbase, templ->coinbasetx);    
+    //debuglog("COINBASE SUBMIT: %s\n", submitvalues->coinbase);
+    
+	int coinbase_len = strlen(submitvalues->coinbase);
+
+	unsigned char coinbase_bin[1024];
+	memset(coinbase_bin, 0, 1024);
+	binlify(coinbase_bin, submitvalues->coinbase);
+
+	char doublehash[128];
+	memset(doublehash, 0, 128);
+	sha256_double_hash_hex((char *)coinbase_bin, doublehash, coinbase_len/2);
+
+	string merkleroot = merkle_with_first(templ->txsteps, doublehash);
+	string_be_len(merkleroot.c_str(), submitvalues->merkleroot_be, 32); 
+    debuglog("MERKLEROOT: %s\n", merkleroot.c_str());
+    
+    string_be_len(templ->nbits, nbits_be, 4);
+    string_be_len(templ->version, version_be, 4);
+    strncpy(nonce, nonce1, strlen(nonce1));
+    strncpy(nonce+strlen(nonce1), nonce2, 64-strlen(nonce1));
+    //strncpy(submitvalues->merkleroot_be, templ->merkleroot_be, 64);
+    //debuglog("Header [0]0x%s   [1]0x%s    [2]0x%s    [3]0x%s    [4]0x%s     [5]0x%s    [6]0x%s     [7]0x%s\n", 
+    debuglog("Header 0x%s%s%s%s%s%s%s%s\n", 
+        version_be, templ->prevhash_be, templ->merkleroot,
+        "0000000000000000000000000000000000000000000000000000000000000000", ntime_be, nbits_be, nonce, sols);
+    sprintf(submitvalues->header, "%s%s%s%s%s%s%s%s", version_be, templ->prevhash_be, templ->merkleroot,
+        "0000000000000000000000000000000000000000000000000000000000000000", ntime_be, nbits_be, nonce, sols);
+    string_be_len(submitvalues->header, submitvalues->header_be, 1487); 
+    
+	binlify(submitvalues->header_bin, submitvalues->header); //!!!!!! ******** !!!!!!!!!! BE removed
+
+//	printf("%s\n", submitvalues->header_be);
+	int header_len = strlen(submitvalues->header)/2;
+    //debuglog("Submitvalues: %s\n", (char *)submitvalues->header_bin);
+	
+    debuglog("Header BE length: %d, Header length: %d, Header BIN length: %d\n", 
+             strlen(submitvalues->header_be), strlen(submitvalues->header), strlen((char *)submitvalues->header_bin));
+    char hash_bin_be[32+1];
+    
+    /*debuglog("[0] HEADER BIN %02x%02x%02x%02x.....%02x%02x%02x%02x\n", 
+				(int) submitvalues->header_bin[0], (int) submitvalues->header_bin[1],
+				(int) submitvalues->header_bin[2], (int) submitvalues->header_bin[3],
+				(int) submitvalues->header_bin[1483], (int) submitvalues->header_bin[1484],
+				(int) submitvalues->header_bin[1485], (int) submitvalues->header_bin[1486]
+            );*/
+    g_current_algo->hash_function((char *)submitvalues->header_bin, (char *)submitvalues->hash_bin, 140+3+1344);
+    //string_reverse(hash_bin_be, (char *)submitvalues->hash_bin);
+    /*debuglog("[0] HASH BIN   %02x%02x%02x%02x.....%02x%02x%02x%02x\n", 
+				(int) submitvalues->hash_bin[0], (int) submitvalues->hash_bin[1],
+				(int) submitvalues->hash_bin[2], (int) submitvalues->hash_bin[3],
+				(int) submitvalues->hash_bin[28], (int) submitvalues->hash_bin[29],
+				(int) submitvalues->hash_bin[30], (int) submitvalues->hash_bin[31]
+            );    
+    */
+    hexlify(submitvalues->hash_hex, submitvalues->hash_bin, 32);
+    /*debuglog("[1] HASH BIN   %02x%02x%02x%02x.....%02x%02x%02x%02x\n", 
+				(int) submitvalues->hash_bin[0], (int) submitvalues->hash_bin[1],
+				(int) submitvalues->hash_bin[2], (int) submitvalues->hash_bin[3],
+				(int) submitvalues->hash_bin[28], (int) submitvalues->hash_bin[29],
+				(int) submitvalues->hash_bin[30], (int) submitvalues->hash_bin[31]
+            );*/      
+    submitvalues->hash_hex[64]=0;
+    debuglog("HASH HEX: %s\n", submitvalues->hash_hex);
+    string_be_len((char *)submitvalues->hash_hex, (char *)submitvalues->hash_be, 32);
+    debuglog("HASH BE : %s\n", submitvalues->hash_be);
+	
+	//string_be(submitvalues->hash_hex, submitvalues->hash_be);
+}
+
 void build_submit_values(YAAMP_JOB_VALUES *submitvalues, YAAMP_JOB_TEMPLATE *templ,
 	const char *nonce1, const char *nonce2, const char *ntime, const char *nonce)
 {
@@ -49,6 +127,7 @@ void build_submit_values(YAAMP_JOB_VALUES *submitvalues, YAAMP_JOB_TEMPLATE *tem
 
 //	printf("%s\n", submitvalues->header_be);
 	int header_len = strlen(submitvalues->header)/2;
+    //debuglog("Submitvalues: %s", (char *)submitvalues->header_bin);
 	g_current_algo->hash_function((char *)submitvalues->header_bin, (char *)submitvalues->hash_bin, header_len);
 
 	hexlify(submitvalues->hash_hex, submitvalues->hash_bin, 32);
@@ -144,14 +223,20 @@ static void client_do_submit(YAAMP_CLIENT *client, YAAMP_JOB *job, YAAMP_JOB_VAL
 
 	if(job->block_found) return;
 	if(job->deleted) return;
+    
+    int block_size = YAAMP_SMALLBUFSIZE;
 
 	uint64_t hash_int = get_hash_difficulty(submitvalues->hash_bin);
 	uint64_t coin_target = decode_compact(templ->nbits);
 	if (templ->nbits && !coin_target) coin_target = 0xFFFF000000000000ULL;
+    if (strcmp(g_stratum_algo,"equihash")==0) {
+        hash_int = get_hash_difficulty_equi(submitvalues->hash_bin);
+        coin_target = coin_target/0x10000;
+        block_size *= 16;
+    }    
 
-	int block_size = YAAMP_SMALLBUFSIZE;
 	vector<string>::const_iterator i;
-
+    
 	for(i = templ->txdata.begin(); i != templ->txdata.end(); ++i)
 		block_size += strlen((*i).c_str());
 
@@ -223,6 +308,10 @@ static void client_do_submit(YAAMP_CLIENT *client, YAAMP_JOB *job, YAAMP_JOB_VAL
 			sprintf(count_hex, "%02x", templ->txcount & 0xFF);
 		else
 			sprintf(count_hex, "fd%02x%02x", templ->txcount & 0xFF, templ->txcount >> 8);
+        
+        //debuglog("COUNT HEX: %s\n", count_hex);
+        //debuglog("HEADER BE: %s\n", submitvalues->header_be);        
+        //debuglog("COINBASE : %s\n", submitvalues->coinbase);        
 
 		memset(block_hex, 0, block_size);
 		sprintf(block_hex, "%s%s%s", submitvalues->header_be, count_hex, submitvalues->coinbase);
@@ -231,10 +320,16 @@ static void client_do_submit(YAAMP_CLIENT *client, YAAMP_JOB *job, YAAMP_JOB_VAL
 			// block header of 88 bytes
 			sprintf(block_hex, "%s8400000008000000%s%s", submitvalues->header_be, count_hex, submitvalues->coinbase);
 		}
+        
+        if (strcmp(g_stratum_algo,"equihash")==0) {
+            sprintf(block_hex, "%s%s%s", submitvalues->header, count_hex, submitvalues->coinbase);
+        }
 
-		vector<string>::const_iterator i;
-		for(i = templ->txdata.begin(); i != templ->txdata.end(); ++i)
+        int counter=0;
+		for(i = templ->txdata.begin(); i != templ->txdata.end(); ++i) {
 			sprintf(block_hex+strlen(block_hex), "%s", (*i).c_str());
+            //debuglog("\nTXDATA[%03d]\n%s\n", counter++, (*i).c_str());
+        }
 
 		// POS coins need a zero byte appended to block, the daemon replaces it with the signature
 		if(coind->pos)
@@ -250,6 +345,8 @@ static void client_do_submit(YAAMP_CLIENT *client, YAAMP_JOB *job, YAAMP_JOB_VAL
 				snprintf(block_hex, block_size, "%s", hex);
 		}
 
+        //debuglog("\n*********\nBLOCK SUBMIT: %s\n", block_hex);
+        
 		bool b = coind_submit(coind, block_hex);
 		if(b)
 		{
@@ -367,11 +464,14 @@ bool client_submit(YAAMP_CLIENT *client, json_value *json_params)
 		return false;
 	}
 
-	char extranonce2[32] = { 0 };
+	char extranonce2[64+1] = { 0 };
 	char extra[160] = { 0 };
 	char nonce[80] = { 0 };
 	char ntime[32] = { 0 };
+    char ntime_be[32] = { 0 };
 	char vote[8] = { 0 };
+    char sols[4096] = { 0 };
+    
 
 	if (strlen(json_params->u.array.values[1]->u.string.ptr) > 32) {
 		clientlog(client, "bad json, wrong jobid len");
@@ -380,13 +480,24 @@ bool client_submit(YAAMP_CLIENT *client, json_value *json_params)
 	}
 	int jobid = htoi(json_params->u.array.values[1]->u.string.ptr);
 
-	strncpy(extranonce2, json_params->u.array.values[2]->u.string.ptr, 31);
-	strncpy(ntime, json_params->u.array.values[3]->u.string.ptr, 31);
-	strncpy(nonce, json_params->u.array.values[4]->u.string.ptr, 31);
+    if (strcmp(g_stratum_algo,"equihash")==0) {
+        strncpy(ntime_be, json_params->u.array.values[2]->u.string.ptr, 31);
+        strncpy(extranonce2, json_params->u.array.values[3]->u.string.ptr, 64);
+        strncpy(sols, json_params->u.array.values[4]->u.string.ptr, 4096);
+        
+        string_lower(extranonce2);        
+        string_lower(sols);
+        string_lower(ntime_be);
+        string_be_len(ntime_be, ntime, 4);
+    } else {
+        strncpy(extranonce2, json_params->u.array.values[2]->u.string.ptr, 31);
+        strncpy(ntime, json_params->u.array.values[3]->u.string.ptr, 31);
+        strncpy(nonce, json_params->u.array.values[4]->u.string.ptr, 31);
 
-	string_lower(extranonce2);
-	string_lower(ntime);
-	string_lower(nonce);
+        string_lower(extranonce2);
+        string_lower(ntime);
+        string_lower(nonce);
+    }
 
 	if (json_params->u.array.length == 6) {
 		if (strstr(g_stratum_algo, "phi")) {
@@ -424,10 +535,12 @@ bool client_submit(YAAMP_CLIENT *client, json_value *json_params)
 
 	YAAMP_JOB_TEMPLATE *templ = job->templ;
 
-	if(strlen(nonce) != YAAMP_NONCE_SIZE*2 || !ishexa(nonce, YAAMP_NONCE_SIZE*2)) {
-		client_submit_error(client, job, 20, "Invalid nonce size", extranonce2, ntime, nonce);
-		return true;
-	}
+    if (strcmp(g_stratum_algo,"equihash")!=0) { // NOT EQUIHAS
+        if(strlen(nonce) != YAAMP_NONCE_SIZE*2 || !ishexa(nonce, YAAMP_NONCE_SIZE*2)) {
+            client_submit_error(client, job, 20, "Invalid nonce size", extranonce2, ntime, nonce);
+            return true;
+        }
+    }
 
 	if(strcmp(ntime, templ->ntime))
 	{
@@ -448,12 +561,22 @@ bool client_submit(YAAMP_CLIENT *client, json_value *json_params)
 		client_submit_error(client, job, 22, "Duplicate share", extranonce2, ntime, nonce);
 		return true;
 	}
-
-	if(strlen(extranonce2) != client->extranonce2size*2)
-	{
-		client_submit_error(client, job, 24, "Invalid extranonce2 size", extranonce2, ntime, nonce);
-		return true;
-	}
+    
+    if (strcmp(g_stratum_algo,"equihash")==0) { // EQUIHASH
+        if(strlen(client->extranonce1)+strlen(extranonce2)!=64)
+        {
+            debuglog("Invalid extranonce2 size nonce1[%d]=%s nonce2[%d]=%s\n", 
+                strlen(client->extranonce1), client->extranonce1, strlen(extranonce2), extranonce2);
+            return true;
+        }
+        
+    } else {
+        if(strlen(extranonce2) != client->extranonce2size*2)
+        {
+            client_submit_error(client, job, 24, "Invalid extranonce2 size", extranonce2, ntime, nonce);
+            return true;
+        }
+    }
 
 	// check if the submitted extranonce is valid
 	if(is_decred && client->extranonce2size > 4) {
@@ -490,12 +613,27 @@ bool client_submit(YAAMP_CLIENT *client, json_value *json_params)
 
 	if(is_decred)
 		build_submit_values_decred(&submitvalues, templ, client->extranonce1, extranonce2, ntime, nonce, vote, true);
-	else
-		build_submit_values(&submitvalues, templ, client->extranonce1, extranonce2, ntime, nonce);
+	else if (strcmp(g_stratum_algo,"equihash")==0) {
+        build_submit_values_equi(&submitvalues, templ, client->extranonce1, extranonce2, ntime_be, sols);
+    } else {
+        build_submit_values(&submitvalues, templ, client->extranonce1, extranonce2, ntime, nonce);
+    } 
 
-	if (templ->height && !strcmp(g_current_algo->name,"lyra2z")) {
-		lyra2z_height = templ->height;
+    if (templ->height && !strcmp(g_current_algo->name,"lyra2z")) {
+            lyra2z_height = templ->height;
 	}
+    debuglog("[1] HEADER BIN %02x%02x%02x%02x.....%02x%02x%02x%02x\n", 
+				(int) submitvalues.header_bin[0], (int) submitvalues.header_bin[1],
+				(int) submitvalues.header_bin[2], (int) submitvalues.header_bin[3],
+				(int) submitvalues.header_bin[1483], (int) submitvalues.header_bin[1484],
+				(int) submitvalues.header_bin[1485], (int) submitvalues.header_bin[1486]
+            );    
+    debuglog("[2] HASH BIN   %02x%02x%02x%02x.....%02x%02x%02x%02x\n", 
+				(int) submitvalues.hash_bin[0], (int) submitvalues.hash_bin[1],
+				(int) submitvalues.hash_bin[2], (int) submitvalues.hash_bin[3],
+				(int) submitvalues.hash_bin[28], (int) submitvalues.hash_bin[29],
+				(int) submitvalues.hash_bin[30], (int) submitvalues.hash_bin[31]
+            );     
 
 	// minimum hash diff begins with 0000, for all...
 	uint8_t pfx = submitvalues.hash_bin[30] | submitvalues.hash_bin[31];
@@ -513,7 +651,12 @@ bool client_submit(YAAMP_CLIENT *client, json_value *json_params)
 	uint64_t user_target = diff_to_target(client->difficulty_actual);
 	uint64_t coin_target = decode_compact(templ->nbits);
 	if (templ->nbits && !coin_target) coin_target = 0xFFFF000000000000ULL;
-
+    
+    if (strcmp(g_stratum_algo,"equihash")==0) {
+        coin_target = coin_target/0x10000;
+        user_target = diff_to_target_equi(client->difficulty_actual);
+        hash_int = get_hash_difficulty_equi(submitvalues.hash_bin);
+    }
 	if (g_debuglog_hash) {
 		debuglog("%016llx actual\n", hash_int);
 		debuglog("%016llx target\n", user_target);

@@ -66,6 +66,7 @@ public:
 	double difficulty_remote;
 	double difficulty_written;
 	bool difficulty_fixed;
+    bool difficulty_sent;
 
 	long long last_submit_time;
 	double shares_per_minute;
@@ -92,6 +93,7 @@ public:
 	int jobid_sent;
 	int jobid_locked;
 
+    char algo[256];
 	YAAMP_CLIENT_ALGO algos_subscribed[YAAMP_MAXALGOS];
 	int job_history[YAAMP_JOB_MAXHISTORY];
 

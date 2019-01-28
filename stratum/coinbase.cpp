@@ -84,7 +84,7 @@ void coinbase_create(YAAMP_COIND *coind, YAAMP_JOB_TEMPLATE *templ, json_value *
 {
 	char eheight[32], etime[32];
 	char entime[32] = { 0 };
-	char commitment[128] = { 0 };
+	char commitment[256] = { 0 };
 
 	ser_number(templ->height, eheight);
 	ser_number(time(NULL), etime);
@@ -121,69 +121,6 @@ void coinbase_create(YAAMP_COIND *coind, YAAMP_JOB_TEMPLATE *templ, json_value *
 			coind->charity_percent = 2;
 		if (strlen(coind->charity_address) == 0)
 			sprintf(coind->charity_address, "EdFwYw4Mo2Zq6CFM2yNJgXvE2DTJxgdBRX");
-	}
-	else if(strcmp(coind->symbol, "DYN") == 0)
-	{
-		char script_dests[2048] = { 0 };
-		char script_payee[128] = { 0 };
-		char payees[3];
-		int npayees = (templ->has_segwit_txs) ? 2 : 1;
-		bool dynode_enabled;
-		dynode_enabled = json_get_bool(json_result, "dynode_payments_enforced");
-		bool superblocks_enabled = json_get_bool(json_result, "superblocks_enabled");
-		json_value* superblock = json_get_array(json_result, "superblock");
-		json_value* dynode;
-		dynode = json_get_object(json_result, "dynode");
-		if(!dynode && json_get_bool(json_result, "dynode_payments")) {
-			coind->oldmasternodes = true;
-			debuglog("%s is using old dynodes rpc keys\n", coind->symbol);
-			return;
-		}
-
-		if(superblocks_enabled && superblock) {
-			for(int i = 0; i < superblock->u.array.length; i++) {
-				const char *payee = json_get_string(superblock->u.array.values[i], "payee");
-				json_int_t amount = json_get_int(superblock->u.array.values[i], "amount");
-				if (payee && amount) {
-					npayees++;
-					available -= amount;
-					base58_decode(payee, script_payee);
-					job_pack_tx(coind, script_dests, amount, script_payee);
-					//debuglog("%s superblock found %s %u\n", coind->symbol, payee, amount);
-				}
-			}
-		}
-		if (dynode_enabled && dynode) {
-			bool started;
-			started = json_get_bool(json_result, "dynode_payments_started");
-			const char *payee = json_get_string(dynode, "payee");
-			json_int_t amount = json_get_int(dynode, "amount");
-			if (!payee)
-				debuglog("coinbase_create failed to get Dynode payee\n");
-
-			if (!amount)
-				debuglog("coinbase_create failed to get Dynode amount\n");
-
-			if (!started)
-				debuglog("coinbase_create failed to get Dynode started\n");
-
-			if (payee && amount && started) {
-				npayees++;
-				available -= amount;
-				base58_decode(payee, script_payee);
-				job_pack_tx(coind, script_dests, amount, script_payee);
-				//debuglog("%s dynode found %s %u\n", coind->symbol, payee, amount);
-			}
-		}
-		sprintf(payees, "%02x", npayees);
-		strcat(templ->coinb2, payees);
-		if (templ->has_segwit_txs) strcat(templ->coinb2, commitment);
-		strcat(templ->coinb2, script_dests);
-		job_pack_tx(coind, templ->coinb2, available, NULL);
-		strcat(templ->coinb2, "00000000"); // locktime
-		coind->reward = (double)available/100000000*coind->reward_mul;
-		//debuglog("%s %d dests %s\n", coind->symbol, npayees, script_dests);
-		return;
 	}
 	else if(strcmp(coind->symbol, "LTCR") == 0) {
 		if (coind->charity_percent <= 0)
@@ -285,6 +222,7 @@ void coinbase_create(YAAMP_COIND *coind, YAAMP_JOB_TEMPLATE *templ, json_value *
 		coind->reward = (double)available / 100000000 * coind->reward_mul;
 		return;
 	}
+    
 
 	// 2 txs are required on these coins, one for foundation (dev fees)
 	if(coind->charity_percent && !coind->hasmasternodes)
@@ -299,10 +237,7 @@ void coinbase_create(YAAMP_COIND *coind, YAAMP_JOB_TEMPLATE *templ, json_value *
 
 		base58_decode(charity_payee, script_payee);
 
-		json_int_t charity_amount = json_get_int(json_result, "payee_amount");
-		if (charity_amount <= 0)
-			charity_amount = (available * coind->charity_percent) / 100;
-
+		json_int_t charity_amount = (available * coind->charity_percent) / 100;
 		available -= charity_amount;
 		coind->charity_amount = charity_amount;
 
@@ -317,8 +252,6 @@ void coinbase_create(YAAMP_COIND *coind, YAAMP_JOB_TEMPLATE *templ, json_value *
 		strcat(templ->coinb2, "00000000"); // locktime
 
 		coind->reward = (double)available/100000000*coind->reward_mul;
-		//debuglog("INFO %s block available %f, charity %f miner %f\n", coind->symbol,
-		//	(double) available/1e8, (double) charity_amount/1e8, coind->reward);
 		return;
 	}
 
@@ -595,40 +528,18 @@ void coinbase_create(YAAMP_COIND *coind, YAAMP_JOB_TEMPLATE *templ, json_value *
 			strcat(templ->coinb2, "01");
 		}
 	}
-        // When Gulden is in phase 3 it is required that the miner deducts the witness subsidy from the reward, it instead gets paid to the witness.
-        else if(strcmp(coind->symbol, "NLG") == 0)
-        {
-            if (templ->has_pow2_witness_data)
-            {
-                  strcat(templ->coinb2, "03");
-                  //Below line is (probably) not necessary - uncomment this if your pool is earning the wrong subsidy in phase 3.
-                  //available -= templ->pow2_subsidy;
-            }
-            else
-            {
-                strcat(templ->coinb2, "01");
-            }
-        }
+
 	else if (templ->has_segwit_txs) {
 		strcat(templ->coinb2, "02");
 		strcat(templ->coinb2, commitment);
 	} else {
 		strcat(templ->coinb2, "01");
 	}
-
+    
 	job_pack_tx(coind, templ->coinb2, available, NULL);
-
-        // Append witness data after normal coinbase outputs - witness data is already hex encoded and already contains amounts.
-        if(strcmp(coind->symbol, "NLG") == 0 && templ->has_pow2_witness_data)
-        {
-            strcat(templ->coinb2, templ->pow2_aux_1);
-            strcat(templ->coinb2, templ->pow2_aux_2);
-        }
 
 	//if(coind->txmessage)
 	//	strcat(templ->coinb2, "00");
-    	if(strcmp(coind->symbol, "DEM") == 0){if(coind->txmessage){strcat(templ->coinb2, "00");}} //fixes eMark.
-    	if(strcmp(coind->symbol, "FLO") == 0){if(coind->txmessage){strcat(templ->coinb2, "00");}} //fixes FlorinCoin 	
 
 	strcat(templ->coinb2, "00000000"); // locktime
 
